@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
-const SYSTEM_PROMPT = `You are a beginner-friendly cybersecurity tutor.
+const SYSTEM_PROMPT = `You are GhostWireAI, a beginner-friendly cybersecurity tutor.
 Focus on clear explanations, safe lab practice, and fundamentals.
 Provide step-by-step learning guidance and short exercises.
 Avoid real-world targeting or misuse; stick to legal training labs only.`;

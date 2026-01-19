@@ -453,12 +453,27 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div
+      className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black"
+      style={{
+        backgroundImage: "url(/icon.png)",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center top",
+        backgroundSize: "420px",
+      }}
+    >
       <main className="flex min-h-screen w-full max-w-6xl flex-col gap-6 py-16 px-6">
         <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-            Local Ollama Tutor
-          </h1>
+          <div className="flex items-center gap-3">
+            <img
+              src="/icon.png"
+              alt="GhostWireAI logo"
+              className="h-10 w-10 rounded-xl"
+            />
+            <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+              GhostWireAI
+            </h1>
+          </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             30-minute daily path into cybersecurity fundamentals.
           </p>

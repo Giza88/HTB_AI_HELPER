@@ -1,4 +1,4 @@
-This is a local-first AI chat app built with [Next.js](https://nextjs.org).
+GhostWireAI is a local-first cybersecurity tutor built with [Next.js](https://nextjs.org).
 
 ## Getting Started
 

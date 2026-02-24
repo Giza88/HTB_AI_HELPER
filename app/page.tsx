@@ -231,17 +231,18 @@ export default function Home() {
   ];
 
   const quickPrompts = [
-    "Start today's 30-minute beginner session.",
-    "Explain today's topic in simple terms with examples.",
-    "Give me a 5-question quiz on this week's topics.",
-    "Summarize what I learned today in 3 bullets.",
+    "How do I start an HTB machine? What's the methodology?",
+    "Explain enumeration for a Linux box (nmap, services, dirs).",
+    "Common web vulnerabilities I should check on HTB.",
+    "What's the difference between Active and Retired machines?",
+    "Give me hints for privilege escalation on Linux.",
   ];
 
   const sendMessage = async () => {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
 
-    const nextMessages = [...messages, { role: "user", content: trimmed }];
+    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
     if (streamEnabled) {
       setMessages([...nextMessages, { role: "assistant", content: "" }]);
     } else {
@@ -266,7 +267,14 @@ export default function Home() {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text);
+        let errMessage = text;
+        try {
+          const errJson = JSON.parse(text) as { error?: string };
+          if (typeof errJson.error === "string") errMessage = errJson.error;
+        } catch {
+          // keep text as-is
+        }
+        throw new Error(errMessage);
       }
 
       if (streamEnabled) {
@@ -293,10 +301,14 @@ export default function Home() {
             try {
               const chunk = JSON.parse(trimmedLine) as {
                 message?: { content?: string };
+                response?: string;
                 done?: boolean;
               };
-              if (chunk.message?.content) {
-                assistantContent += chunk.message.content;
+              const content =
+                chunk.message?.content ??
+                (typeof chunk.response === "string" ? chunk.response : "");
+              if (content) {
+                assistantContent += content;
                 setMessages((prev) => {
                   const updated = [...prev];
                   const last = updated[updated.length - 1];
@@ -329,6 +341,8 @@ export default function Home() {
         setErrorHint("Ollama may be offline. Start it and try again.");
       } else if (lower.includes("model") || lower.includes("not found")) {
         setErrorHint("Model not found. Run: ollama pull <model>.");
+      } else if (lower.includes("aborted")) {
+        setErrorHint("The request took too long (timeout). Try again — the first response can be slow on weaker hardware.");
       } else {
         setErrorHint(null);
       }
@@ -467,15 +481,15 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <img
               src="/icon.png"
-              alt="GhostWireAI logo"
+              alt="HTB Helper logo"
               className="h-10 w-10 rounded-xl"
             />
             <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-              GhostWireAI
+              HTB Challenge Helper
             </h1>
           </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            30-minute daily path into cybersecurity fundamentals.
+            Ask anything about Hack The Box — machines, challenges, tools, and methodology.
           </p>
         </header>
 
@@ -484,7 +498,7 @@ export default function Home() {
             <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
               {messages.length === 0 ? (
                 <div className="text-sm text-zinc-500">
-                  Ask for today&apos;s lesson to get started.
+                  Ask anything about Hack The Box — machines, challenges, tools, or methodology.
                 </div>
               ) : (
                 messages.map((message, index) => (
@@ -544,7 +558,7 @@ export default function Home() {
                     sendMessage();
                   }
                 }}
-                placeholder="Ask about today’s lesson..."
+                placeholder="Ask about Hack The Box..."
                 className="flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-zinc-100"
               />
               <button
@@ -567,6 +581,9 @@ export default function Home() {
               Recommended: <span className="font-semibold">llama3.1:8b</span>.
               Lower-end hardware can try{" "}
               <span className="font-semibold">qwen2.5:7b</span>.
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+              Chat requires Ollama running (e.g. <code className="rounded bg-zinc-200 px-1 dark:bg-zinc-700">ollama serve</code>) and a model (e.g. <code className="rounded bg-zinc-200 px-1 dark:bg-zinc-700">ollama pull llama3.1:8b</code>). Use Test Connection to verify.
               </p>
             <div className="mt-4 flex flex-col gap-3">
               <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -732,7 +749,7 @@ export default function Home() {
 
             <section className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
               <h2 className="text-sm font-semibold text-black dark:text-zinc-100">
-                8-Week Beginner Plan
+                Pentesting basics (what this helper knows)
               </h2>
               <div className="mt-3 flex max-h-[360px] flex-col gap-3 overflow-y-auto pr-2">
                 {studyPlan.map((week) => (

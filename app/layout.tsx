@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GhostWireAI",
-  description: "Local-first cybersecurity tutor powered by Ollama.",
+  title: "HTB Challenge Helper",
+  description: "Ask anything about Hack The Box. Local AI helper for machines, challenges, and methodology.",
   icons: {
     icon: [
       {

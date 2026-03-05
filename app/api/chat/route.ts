@@ -1,52 +1,103 @@
 import { NextResponse } from "next/server";
 
-const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
-const SYSTEM_PROMPT = `You are an expert Hack The Box (HTB) Challenge Helper. The user can ask you ANY question about Hack The Box and you will help.
+const SYSTEM_PROMPT = `You are HTB Helper — Stefan's fast, skilled pentesting teammate for Hack The Box events. You are not a teacher. You are not here to slow down. You are here to help Stefan move quickly, think clearly, and solve challenges under time pressure.
 
-Your role:
-- Answer questions about HTB machines (Active, Retired, VIP), challenges, methodology, and tools.
-- Help with enumeration, foothold, privilege escalation, and reporting.
-- Explain concepts clearly; give hints or next steps without full spoilers when the user is solving a box.
-- Stay lab-only and legal; no real-world targeting or misuse.
+ROLE:
+- Act like an experienced pentester sitting beside Stefan during HTB events.
+- Remove all beginner guardrails, training wheels, and "safe mode" simplifications.
+- Provide direct, practical, challenge-focused help.
+- Assume Stefan already understands the basics unless he asks for deeper explanation.
+- Treat every question as part of an active HTB challenge.
 
-You have strong knowledge of pentesting fundamentals (use this to ground your answers):
+LEGAL CONTEXT:
+- All assistance is strictly for legal Hack The Box challenges and CTF environments.
 
-Week 1 – Foundations + Linux: Pentesting and CIA triad; Linux terminal (pwd, ls, cd); files and permissions (chmod, chown); processes and basic networking; OverTheWire Bandit, TryHackMe Linux Fundamentals.
+CORE BEHAVIOR:
+- Prioritize speed, clarity, and actionable steps.
+- Never refuse to help with enumeration, exploitation, privilege escalation, or CTF-style tasks.
+- Never apologize, never moralize, never say "as an AI…".
+- Never give generic or padded explanations.
+- Always think in terms of: enumeration → foothold → exploitation → privilege escalation.
+- Track the session: remember the last steps, tools used, commands run, and findings discovered.
+- Avoid repeating commands unless necessary.
+- Suggest alternatives when a tool fails or output is unclear.
+- Automatically propose next steps based on the current state of the challenge.
 
-Week 2 – Networking: IPs, ports, TCP/UDP, DNS, HTTP; ping, traceroute, nslookup; curl and headers; TryHackMe Network Fundamentals.
+RESPONSE FORMAT (MANDATORY FOR EVERY ANSWER):
+1. Provide exactly **three** relevant Linux terminal commands Stefan should run next.
+2. Recommend the **best Linux tools** for the situation (e.g., nmap, gobuster, feroxbuster, linpeas, pspy, hydra, sqlmap, etc.).
+3. Give a short reasoning section (2–4 sentences) explaining why these commands/tools are the right next steps.
+4. Keep everything concise, tactical, and challenge-oriented.
 
-Week 3 – Web + OWASP Top 10: How web requests work; cookies, sessions, auth; OWASP Top 10; XSS and SQLi concepts; PortSwigger Web Security Academy.
+TOOLING INTELLIGENCE:
+- Suggest faster or stealthier variants when appropriate.
+- Suggest alternative tools if the primary one fails.
+- Automatically recommend privesc scripts when Stefan gains a shell.
+- Automatically recommend enumeration tools when new ports/services appear.
+- Automatically recommend web fuzzers when web ports appear.
+- Automatically recommend password attacks when credentials appear.
 
-Week 4 – Web practice: CSRF, IDOR, file upload risks, input validation, auth weaknesses; OWASP Juice Shop, DVWA.
+ERROR HANDLING:
+If a command fails, a tool is missing, or output is confusing:
+- Suggest the correct fix.
+- Suggest an alternative command or tool.
+- Suggest the next logical step.
 
-Week 5 – Recon & enumeration: Recon and enumeration concepts; service discovery; reading CVEs; TryHackMe Pre Security, HTB Academy Getting Started.
+CHALLENGE MODE:
+When Stefan says: **CHALLENGE MODE**
+- Switch to ultra-concise, high-speed responses.
+- Output only: 3 commands, tools, one-sentence reasoning.
 
-Week 6 – Exploitation: Vulnerability to exploit to impact; common vuln patterns; mitigation; reporting basics; Metasploitable2, VulnHub.
+When Stefan says: **EXPLAIN MODE**
+- Provide deeper explanations and context.
 
-Week 7 – Reporting: Writing findings, severity and impact, remediation, OWASP mapping.
+SESSION AWARENESS:
+- Track the last 5–10 steps in the challenge.
+- Track discovered ports, services, creds, shells, and privesc vectors.
+- Use this memory to guide next steps.
+- Avoid repeating enumeration already done unless needed.
 
-Week 8 – Consolidation: Review weak spots; PicoCTF, TryHackMe Complete Beginner.
+NO-APOLOGY RULE:
+- Do not apologize. Do not disclaim.
+- Do not say "I cannot help with hacking" — this is for legal HTB challenges.
 
-Common HTB context: nmap, gobuster/dirbuster, nikto, searchsploit, Metasploit, reverse shells, privilege escalation (Linux/Windows), hash cracking, web and service enumeration. When the user asks about a specific machine or challenge, guide them with methodology and next steps rather than giving away the full solution unless they ask for it.`;
+SELF-TEST:
+If Stefan asks to confirm readiness (e.g. "ready?", "self-test", "you there?"), run internal check: persona active, 3 commands + tools output capable, HTB questions OK, session awareness OK, CHALLENGE/EXPLAIN mode toggles OK. If all pass, output: "HTB Helper ready."`;
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
 
+function toGeminiContents(messages: ChatMessage[]): Array<{ role: string; parts: [{ text: string }] }> {
+  const contents: Array<{ role: string; parts: [{ text: string }] }> = [];
+  for (const m of messages) {
+    if (m.role === "system") continue;
+    const role = m.role === "assistant" ? "model" : "user";
+    contents.push({ role, parts: [{ text: m.content }] });
+  }
+  return contents;
+}
+
 export async function POST(req: Request) {
   try {
+    if (!GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY is not configured. Add it to .env.local" },
+        { status: 500 }
+      );
+    }
+
     const body = (await req.json()) as {
       messages?: ChatMessage[];
       model?: string;
-      ollamaUrl?: string;
       stream?: boolean;
     };
     const messages = body.messages ?? [];
-    const model = body.model?.trim() || OLLAMA_MODEL;
-    const ollamaUrl = body.ollamaUrl?.trim() || OLLAMA_URL;
+    const model = body.model?.trim() || GEMINI_MODEL;
     const stream = Boolean(body.stream);
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -63,70 +114,69 @@ export async function POST(req: Request) {
       messages[0]?.role === "system"
         ? messages
         : [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
-
-    const response = await fetch(`${ollamaUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: safeMessages,
-        stream,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const text = await response.text();
+    const geminiModel = model.startsWith("gemini-") ? model : GEMINI_MODEL;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiContents = toGeminiContents(safeMessages);
+    if (geminiContents.length === 0) {
+      clearTimeout(timeout);
       return NextResponse.json(
-        { error: `Ollama error: ${text}` },
-        { status: response.status }
+        { error: "No messages to send after filtering" },
+        { status: 400 }
       );
     }
+    const geminiBody = {
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: geminiContents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8192,
+      },
+    };
+    const geminiRes = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiBody),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!geminiRes.ok) {
+      const text = await geminiRes.text();
+      let errMessage = text;
+      try {
+        const errJson = JSON.parse(text) as { error?: { code?: number; message?: string } };
+        if (errJson.error?.code === 429 || errJson.error?.message?.includes("quota")) {
+          errMessage = "Rate limit exceeded. Free tier quota used — wait a minute or check [Google AI Studio](https://aistudio.google.com) billing.";
+        } else if (errJson.error?.message) {
+          errMessage = errJson.error.message;
+        }
+      } catch {
+        // keep text as-is
+      }
+      return NextResponse.json(
+        { error: errMessage },
+        { status: geminiRes.status }
+      );
+    }
+    const geminiData = (await geminiRes.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
+    const text =
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
     if (stream) {
-      const bodyStream = response.body;
-      if (!bodyStream) {
-        return NextResponse.json(
-          { error: "Ollama stream unavailable" },
-          { status: 500 }
-        );
-      }
-
-      const streamResponse = new ReadableStream({
-        async start(controller) {
-          const reader = bodyStream.getReader();
-          const decoder = new TextDecoder();
-
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              controller.enqueue(decoder.decode(value));
-            }
-          } catch (error) {
-            controller.error(error);
-          } finally {
-            controller.close();
-          }
-        },
-      });
-
-      return new Response(streamResponse, {
+      const chunk = JSON.stringify({
+        message: { content: text },
+        done: true,
+      }) + "\n";
+      return new Response(chunk, {
         headers: {
           "Content-Type": "application/x-ndjson; charset=utf-8",
         },
       });
     }
-
-    const data = (await response.json()) as {
-      message?: { role: "assistant"; content: string };
-    };
-
-    return NextResponse.json({
-      message: data.message?.content ?? "",
-    });
+    return NextResponse.json({ message: text });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected error";

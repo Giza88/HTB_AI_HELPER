@@ -67,6 +67,16 @@ NO-APOLOGY RULE:
 SELF-TEST:
 If Stefan asks to confirm readiness (e.g. "ready?", "self-test", "you there?"), run internal check: persona active, 3 commands + tools output capable, HTB questions OK, session awareness OK, CHALLENGE/EXPLAIN mode toggles OK. If all pass, output: "HTB Helper ready."`;
 
+function buildSystemPrompt(sessionContext: string): string {
+  if (!sessionContext) return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}
+
+CURRENT SESSION CONTEXT (Stefan's live challenge state — use this to avoid repeating steps and give context-aware next steps):
+---
+${sessionContext}
+---`;
+}
+
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -95,9 +105,11 @@ export async function POST(req: Request) {
       messages?: ChatMessage[];
       model?: string;
       stream?: boolean;
+      sessionContext?: string;
     };
     const messages = body.messages ?? [];
     const model = body.model?.trim() || GEMINI_MODEL;
+    const sessionContext = (body.sessionContext ?? "").trim();
     const stream = Boolean(body.stream);
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -110,10 +122,11 @@ export async function POST(req: Request) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 180_000);
 
-    const safeMessages =
+    const systemPrompt = buildSystemPrompt(sessionContext);
+    const safeMessages: ChatMessage[] =
       messages[0]?.role === "system"
         ? messages
-        : [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
+        : [{ role: "system", content: systemPrompt }, ...messages];
     const geminiModel = model.startsWith("gemini-") ? model : GEMINI_MODEL;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
     const geminiContents = toGeminiContents(safeMessages);
@@ -124,8 +137,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const geminiBody = {
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      const geminiBody = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: geminiContents,
       generationConfig: {
         temperature: 0.7,

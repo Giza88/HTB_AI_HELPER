@@ -1,0 +1,52 @@
+---
+description: Hack The Box visual theme - all UI must use this palette
+alwaysApply: true
+---
+
+# HTB Theme - Mandatory for All UI
+
+All components, styles, and generated code **must** use the Hack The Box colour scheme.
+
+## Palette (use these only)
+
+| Token | Hex/Value | Usage |
+|-------|-----------|-------|
+| `--htb-primary` | #0B121F | Main background, dark canvas |
+| `--htb-accent` | #9FEF00 | Buttons, active states, highlights, headings |
+| `--htb-secondary` | #A3B3BC | Muted text, borders, secondary UI |
+| `--htb-text` | #FFFFFF | Main body text |
+| `--htb-glow` | rgba(159,239,0,0.4) | Neon glow effects |
+| `--htb-surface` | #111827 | Cards, panels, elevated surfaces |
+| `--htb-border` | #1e293b | Borders, dividers |
+
+## Tailwind Classes
+
+- `bg-htb-primary`, `bg-htb-surface` — backgrounds
+- `text-htb-text`, `text-htb-secondary`, `text-htb-accent` — text
+- `border-htb-border`, `border-htb-accent` — borders
+- `focus:ring-htb-accent`, `focus:border-htb-accent` — focus states
+- `hover:text-htb-accent`, `hover:border-htb-accent` — hover states
+- `htb-glow`, `htb-glow-text`, `htb-btn-accent` — custom utilities in globals.css
+
+## Design Rules
+
+- **Dark cyber aesthetic** — high contrast, sharp edges
+- **Bold uppercase headings** — section titles
+- **Neon green** for interactive elements (buttons, links, active)
+- **No colours outside this palette** — avoid zinc, slate, red, blue, etc.
+- **Errors/warnings** — use `htb-error-box` or accent at reduced opacity
+
+## Example
+
+```tsx
+// ✅ Correct
+<button className="bg-htb-accent text-htb-primary font-semibold">Submit</button>
+<section className="border border-htb-border bg-htb-surface p-4">
+  <h2 className="text-htb-accent uppercase">Section</h2>
+  <p className="text-htb-secondary">Muted text</p>
+</section>
+
+// ❌ Wrong
+<button className="bg-blue-500">Submit</button>
+<div className="bg-zinc-100 text-black">...</div>
+```

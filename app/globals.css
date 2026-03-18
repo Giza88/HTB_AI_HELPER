@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
+/* ============================================
+   HACK THE BOX THEME - Default for entire project
+   All UI must use this palette unless overridden.
+   ============================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --htb-primary: #0B121F;
+  --htb-accent: #9FEF00;
+  --htb-secondary: #A3B3BC;
+  --htb-text: #FFFFFF;
+  --htb-glow: rgba(159, 239, 0, 0.4);
+  --htb-surface: #111827;
+  --htb-border: #1e293b;
+  --htb-error: rgba(159, 239, 0, 0.3);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-htb-primary: var(--htb-primary);
+  --color-htb-accent: var(--htb-accent);
+  --color-htb-secondary: var(--htb-secondary);
+  --color-htb-text: var(--htb-text);
+  --color-htb-surface: var(--htb-surface);
+  --color-htb-border: var(--htb-border);
+  --color-htb-error: var(--htb-error);
+  /* Override Tailwind defaults to HTB palette */
+  --color-background: var(--htb-primary);
+  --color-foreground: var(--htb-text);
+  --color-muted: var(--htb-secondary);
+  --color-border: var(--htb-border);
+  --color-ring: var(--htb-accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Placeholder uses secondary color */
+::placeholder {
+  color: var(--htb-secondary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--htb-primary);
+  color: var(--htb-text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+a {
+  color: var(--htb-accent);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Error/warning state - uses accent at reduced opacity (stays in palette) */
+.htb-error-box {
+  border-color: rgba(159, 239, 0, 0.5);
+  background-color: rgba(159, 239, 0, 0.08);
+  color: var(--htb-accent);
+}
+
+/* Neon glow for accent elements */
+.htb-glow {
+  box-shadow: 0 0 12px var(--htb-glow);
+}
+
+.htb-btn-accent:hover {
+  box-shadow: 0 0 12px var(--htb-glow);
+}
+
+.htb-glow-text {
+  text-shadow: 0 0 8px var(--htb-glow);
 }
